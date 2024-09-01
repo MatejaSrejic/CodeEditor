@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
 import subprocess
 import keyword
+from autocomplete import Autocomplete
 
 class CodeEditor:
     def __init__(self, root):
@@ -10,12 +11,18 @@ class CodeEditor:
         self.text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 12))
         self.text_area.pack(expand=True, fill='both')
         
+        self.autocomplete = Autocomplete(self.text_area)
+
         self.create_menu()
-        
+
         self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
         self.output_area.pack(expand=True, fill='both')
 
-        self.text_area.bind("<KeyRelease>", self.highlight_syntax)
+        self.text_area.bind("<KeyRelease>", self.on_key_release)
+
+    def on_key_release(self, event):
+        self.highlight_syntax(event)
+        self.autocomplete.on_key_release(event)
 
     def create_menu(self):
         menu = tk.Menu(self.root)
