@@ -16,6 +16,15 @@ class CodeEditor:
         self.output_area.pack(expand=True, fill='both')
 
         self.text_area.bind("<KeyRelease>", self.highlight_syntax)
+        self.undo_stack = []
+        self.redo_stack = []
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        if messagebox.askyesno("Quit", "Do you want to save your progress?"):
+            self.save_file()
+        self.root.quit()
 
     def create_menu(self):
         menu = tk.Menu(self.root)
@@ -27,6 +36,10 @@ class CodeEditor:
         file_menu.add_command(label="Save", command=self.save_file)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
+        edit_menu = tk.Menu(menu)
+        menu.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Undo", command=self.undo)
+        edit_menu.add_command(label="Redo", command=self.redo)
         
         run_menu = tk.Menu(menu)
         menu.add_cascade(label="Run", menu=run_menu)
@@ -67,7 +80,19 @@ class CodeEditor:
         self.output_area.delete(1.0, tk.END)
         self.output_area.insert(tk.END, result.stdout + result.stderr)
 
+    def undo(self):
+        if self.undo_stack:
+            self.redo_stack.append(self.text_area.get(1.0, tk.END))
+            self.text_area.delete(1.0, tk.END)
+            self.text_area.insert(tk.END, self.undo_stack.pop())
+
+    def redo(self):
+        if self.redo_stack:
+            self.undo_stack.append(self.text_area.get(1.0, tk.END))
+            self.text_area.delete(1.0, tk.END)
+            self.text_area.insert(tk.END, self.redo_stack.pop())
 if __name__ == "__main__":
     root = tk.Tk()
     editor = CodeEditor(root)
     root.mainloop()
+    print(result)
