@@ -1,5 +1,6 @@
 import tkinter as tk
 import keyword
+import builtins
 
 class Autocomplete:
     def __init__(self, text_widget):
@@ -7,33 +8,31 @@ class Autocomplete:
         self.suggestion_window = None
         self.suggestions_listbox = None
 
-        print("Autocomplete init success")
+        print("Autocomplete initialized")
 
-        # Lista svih Python ključnih reči i promenljivih (početno prazno)
-        self.keywords = keyword.kwlist
+        self.keywords = keyword.kwlist + dir(builtins)
+        self.keywords = list(set(self.keywords)) # izbrisi duplikate
         print(self.keywords)
+        
         self.variables = []
-
-        # Povezivanje funkcije za detekciju unosa u text_area
-        self.text_widget.bind("<KeyRelease>", self.on_key_release)
+    
+    def find_matches(self, current_word, word_list):
+        return [word for word in word_list if word.startswith(current_word)]
 
     def on_key_release(self, event):
-        print("Detected key release")
         if event.keysym in ['BackSpace', 'Delete']:
             self.hide_suggestions()
-            return  # Ne trigeruje autocomplete pri brisanju
-        
-        # Detekcija trenutne reči
+            return
+
+        print("on_key_release triggered")
+
         current_word = self.get_current_word()
         if current_word:
-            # Traženje podudaranja u listi ključnih reči i promenljivih
             matches = self.find_matches(current_word, self.keywords + self.variables)
-            print("Matches", matches, "for '"+current_word+"'")
-            if current_word == matches[0]: 
-                self.hide_suggestions()
-                return  # Ne trigeruje autocomplete pri brisanju
-            elif matches:
+            if current_word in matches: matches.remove(current_word)
+            if matches:
                 self.show_suggestions(matches)
+                print("For word", current_word, "found", matches)
             else:
                 self.hide_suggestions()
         else:
@@ -41,34 +40,30 @@ class Autocomplete:
 
     def get_current_word(self):
         cursor_position = self.text_widget.index(tk.INSERT)
-        line_start = f"{cursor_position.split('.')[0]}.0"
+        line_start = str(cursor_position.split('.')[0]) + ".0"
         line_text = self.text_widget.get(line_start, cursor_position)
 
-        # Razdvajanje reči
-        words = line_text.split()
+        words = line_text.split(" ")
         if words:
             return words[-1]
         return ""
-
-    def find_matches(self, current_word, word_list):
-        matches = [word for word in word_list if word.startswith(current_word)]
-        return matches
 
     def show_suggestions(self, matches):
         if self.suggestion_window:
             self.suggestion_window.destroy()
 
-        # Kreiranje novog prozora za sugestije
         self.suggestion_window = tk.Toplevel()
         self.suggestion_window.wm_overrideredirect(True)
 
-        # Pozicioniranje prozora ispod kursora
-        x, y, _, _ = self.text_widget.bbox(tk.INSERT)
-        x += self.text_widget.winfo_rootx()
-        y += self.text_widget.winfo_rooty() + 20  # Pomeri malo ispod kursora
-        self.suggestion_window.geometry(f"+{x}+{y}")
+        try:
+            x, y, _, _ = self.text_widget.bbox(tk.INSERT)
+            x += self.text_widget.winfo_rootx()
+            y += self.text_widget.winfo_rooty() + 20 
+            self.suggestion_window.geometry(f"+{x}+{y}")
+        except:
+            self.hide_suggestions()
+            return
 
-        # Kreiranje liste za prikazivanje sugestija
         self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
 
         for match in matches:
@@ -76,29 +71,36 @@ class Autocomplete:
 
         self.suggestions_listbox.pack()
 
-        # Povezivanje selekcije sa događajem Enter ili Double-Click
         self.suggestions_listbox.bind("<Return>", self.insert_selected)
         self.suggestions_listbox.bind("<Double-Button-1>", self.insert_selected)
 
-        # Praćenje strelica gore/dole
-        self.suggestions_listbox.bind("<Up>", self.navigate_suggestions)
-        self.suggestions_listbox.bind("<Down>", self.navigate_suggestions)
-        self.suggestions_listbox.focus_set()
+        self.text_widget.bind("<Up>", self.focus_listbox)
+        self.text_widget.bind("<Down>", self.focus_listbox)
+
+        self.text_widget.focus_set()
 
     def hide_suggestions(self):
         if self.suggestion_window:
-            self.suggestion_window.destroy()
+            #self.suggestion_window.destroy()
+            self.suggestion_window.withdraw()
             self.suggestion_window = None
+
+    def focus_listbox(self, event):
+        print("Detect ", event)
+        self.suggestions_listbox.focus_set()
+        self.navigate_suggestions(event)
 
     def navigate_suggestions(self, event):
         current_selection = self.suggestions_listbox.curselection()
         if event.keysym == "Down":
+            print("Autocomplete down")
             if current_selection:
                 next_index = (current_selection[0] + 1) % self.suggestions_listbox.size()
             else:
                 next_index = 0
             self.suggestions_listbox.select_set(next_index)
         elif event.keysym == "Up":
+            print("Autocomplete u")
             if current_selection:
                 next_index = (current_selection[0] - 1) % self.suggestions_listbox.size()
             else:
@@ -110,6 +112,7 @@ class Autocomplete:
         current_word = self.get_current_word()
         self.text_widget.insert(tk.INSERT, selected_word[len(current_word):])
         self.hide_suggestions()
+
         self.text_widget.focus_set()
 
     def add_variable(self, variable_name):
