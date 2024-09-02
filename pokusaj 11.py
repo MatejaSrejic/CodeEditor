@@ -2,38 +2,22 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
 import subprocess
 import keyword
-from autocomplete import Autocomplete
 
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Code Editor")
+        self.root.title("Python Code Editor")
         self.text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 12))
         self.text_area.pack(expand=True, fill='both')
         
-        self.autocomplete = Autocomplete(self.text_area)
-
         self.create_menu()
-
+        
         self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
         self.output_area.pack(expand=True, fill='both')
 
-        self.text_area.bind("<KeyRelease>", self.on_key_release)
-
-    def on_key_release(self, event):
-        self.highlight_syntax(event)
-        self.autocomplete.on_key_release(event)
-=======
         self.text_area.bind("<KeyRelease>", self.highlight_syntax)
         self.undo_stack = []
         self.redo_stack = []
-
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-    def on_closing(self):
-        if messagebox.askyesno("Quit", "Do you want to save your progress?"):
-            self.save_file()
-        self.root.quit()
 
     def create_menu(self):
         menu = tk.Menu(self.root)
@@ -45,11 +29,12 @@ class CodeEditor:
         file_menu.add_command(label="Save", command=self.save_file)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
+        
         edit_menu = tk.Menu(menu)
         menu.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Undo", command=self.undo)
         edit_menu.add_command(label="Redo", command=self.redo)
-        
+
         run_menu = tk.Menu(menu)
         menu.add_cascade(label="Run", menu=run_menu)
         run_menu.add_command(label="Run Code", command=self.run_code)
@@ -73,7 +58,6 @@ class CodeEditor:
             with open(file_path, 'r') as file:
                 self.text_area.delete(1.0, tk.END)
                 self.text_area.insert(tk.END, file.read())
-            self.highlight_syntax()
 
     def save_file(self):
         file_path = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python files", "*.py")])
@@ -90,18 +74,17 @@ class CodeEditor:
         self.output_area.insert(tk.END, result.stdout + result.stderr)
 
     def undo(self):
-        if self.undo_stack:
-            self.redo_stack.append(self.text_area.get(1.0, tk.END))
-            self.text_area.delete(1.0, tk.END)
-            self.text_area.insert(tk.END, self.undo_stack.pop())
+        if self.text_area.edit_modified():
+            self.undo_stack.append(self.text_area.get(1.0, tk.END))
+            self.text_area.edit_undo()
+            self.redo_stack.append(self.undo_stack.pop())
 
     def redo(self):
         if self.redo_stack:
-            self.undo_stack.append(self.text_area.get(1.0, tk.END))
             self.text_area.delete(1.0, tk.END)
             self.text_area.insert(tk.END, self.redo_stack.pop())
+
 if __name__ == "__main__":
     root = tk.Tk()
     editor = CodeEditor(root)
     root.mainloop()
-    print(result)

@@ -2,28 +2,19 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
 import subprocess
 import keyword
-from autocomplete import Autocomplete
 
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Code Editor")
+        self.root.title("Python Code Editor")
         self.text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 12))
         self.text_area.pack(expand=True, fill='both')
         
-        self.autocomplete = Autocomplete(self.text_area)
-
         self.create_menu()
-
+        
         self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
         self.output_area.pack(expand=True, fill='both')
 
-        self.text_area.bind("<KeyRelease>", self.on_key_release)
-
-    def on_key_release(self, event):
-        self.highlight_syntax(event)
-        self.autocomplete.on_key_release(event)
-=======
         self.text_area.bind("<KeyRelease>", self.highlight_syntax)
         self.undo_stack = []
         self.redo_stack = []
@@ -45,10 +36,6 @@ class CodeEditor:
         file_menu.add_command(label="Save", command=self.save_file)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
-        edit_menu = tk.Menu(menu)
-        menu.add_cascade(label="Edit", menu=edit_menu)
-        edit_menu.add_command(label="Undo", command=self.undo)
-        edit_menu.add_command(label="Redo", command=self.redo)
         
         run_menu = tk.Menu(menu)
         menu.add_cascade(label="Run", menu=run_menu)
@@ -104,4 +91,9 @@ if __name__ == "__main__":
     root = tk.Tk()
     editor = CodeEditor(root)
     root.mainloop()
+    result = check_syntax("example.py")
     print(result)
+
+
+
+
