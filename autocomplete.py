@@ -49,11 +49,15 @@ class Autocomplete:
         return ""
 
     def show_suggestions(self, matches):
-        if self.suggestion_window:
-            self.suggestion_window.destroy()
+        if hasattr(self, 'toplevel') and self.toplevel.winfo_exists():
+            self.toplevel.deiconify()
+            self.listbox.delete(0, tk.END)
+        else:
+            #if self.suggestion_window:
+            #   self.suggestion_window.destroy()
 
-        self.suggestion_window = tk.Toplevel()
-        self.suggestion_window.wm_overrideredirect(True)
+            self.suggestion_window = tk.Toplevel()
+            self.suggestion_window.wm_overrideredirect(True)
 
         try:
             x, y, _, _ = self.text_widget.bbox(tk.INSERT)
