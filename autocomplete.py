@@ -31,6 +31,7 @@ class Autocomplete:
             matches = self.find_matches(current_word, self.keywords + self.variables)
             if current_word in matches: matches.remove(current_word)
             if matches:
+                print("Trigger for release ", event)
                 self.show_suggestions(matches)
                 print("For word", current_word, "found", matches)
             else:
@@ -49,15 +50,17 @@ class Autocomplete:
         return ""
 
     def show_suggestions(self, matches):
-        if hasattr(self, 'toplevel') and self.toplevel.winfo_exists():
-            self.toplevel.deiconify()
-            self.listbox.delete(0, tk.END)
-        else:
-            #if self.suggestion_window:
-            #   self.suggestion_window.destroy()
-
+        if self.suggestions_listbox:
+            self.suggestions_listbox.destroy()
+            
+        if not self.suggestion_window:
+            print("Pravim novi window!")
             self.suggestion_window = tk.Toplevel()
             self.suggestion_window.wm_overrideredirect(True)
+            #self.suggestion_window.wm_attributes('-type', 'splash')
+        else:
+            print("Vec postoji, otkrivam ga!")
+            self.suggestion_window.deiconify()
 
         try:
             x, y, _, _ = self.text_widget.bbox(tk.INSERT)
@@ -69,11 +72,16 @@ class Autocomplete:
             return
 
         self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
+        self.suggestions_listbox.pack()
 
         for match in matches:
             self.suggestions_listbox.insert(tk.END, match)
 
-        self.suggestions_listbox.pack()
+        print("Updated content of listbox", self.suggestions_listbox.get(0, "end"))
+
+        #self.suggestions_listbox.exportselection = False   
+
+        #self.suggestions_listbox.pack() MOZDA POSLE INSERT?
 
         self.suggestions_listbox.bind("<Return>", self.insert_selected)
         self.suggestions_listbox.bind("<Double-Button-1>", self.insert_selected)
@@ -88,7 +96,9 @@ class Autocomplete:
             #self.suggestion_window.destroy()
             self.suggestion_window.withdraw()
             self.suggestion_window = None
-
+           #self.suggestions_listbox.pack_forget()
+            self.suggestions_listbox.destroy()
+            
     def focus_listbox(self, event):
         print("Detect ", event)
         self.suggestions_listbox.focus_set()
