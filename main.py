@@ -23,7 +23,6 @@ class CodeEditor:
     def on_key_release(self, event):
         self.highlight_syntax(event)
         self.autocomplete.on_key_release(event)
-=======
         self.text_area.bind("<KeyRelease>", self.highlight_syntax)
         self.undo_stack = []
         self.redo_stack = []
