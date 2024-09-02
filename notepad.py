@@ -59,7 +59,7 @@ class CodeEditor:
         self.text_area.tag_config("keyword", foreground="blue")
 
     def indent_code(self, event):
-        self.text_area.insert(tk.INSERT, "    ")
+        self.text_area.insert(tk.INSERT, "	")
         return "break"
 
 if __name__ == "__main__":

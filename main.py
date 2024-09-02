@@ -7,7 +7,7 @@ from autocomplete import Autocomplete
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Python Code Editor")
+        self.root.title("Code Editor")
         self.text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 12))
         self.text_area.pack(expand=True, fill='both')
         

@@ -1,6 +1,7 @@
 import tkinter as tk
 import keyword
 import builtins
+from astree import ASTree
 
 class Autocomplete:
     def __init__(self, text_widget):
@@ -8,25 +9,33 @@ class Autocomplete:
         self.suggestion_window = None
         self.suggestions_listbox = None
 
-        print("Autocomplete initialized")
-
         self.keywords = keyword.kwlist + dir(builtins)
         self.keywords = list(set(self.keywords)) # izbrisi duplikate
-        print(self.keywords)
         
         self.variables = []
+
+    def refresh_variables(self):
+        text_widget_value = self.text_widget.get(1.0, "end")
+        analyzer = ASTree(text_widget_value)
+        self.keywords = keyword.kwlist + dir(builtins)
+        self.keywords += analyzer.retrieve_variables()
     
     def find_matches(self, current_word, word_list):
         return [word for word in word_list if word.startswith(current_word)]
 
     def on_key_release(self, event):
-        if event.keysym in ['BackSpace', 'Delete']:
+        if event.keysym in ['BackSpace', 'Delete', 'Escape']:
             self.hide_suggestions()
+            return
+        
+        if event.keysym in ['Return', 'Space']:
+            self.refresh_variables()
             return
 
         print("on_key_release triggered")
 
         current_word = self.get_current_word()
+        current_word = current_word.replace("	", "")
         if current_word:
             matches = self.find_matches(current_word, self.keywords + self.variables)
             if current_word in matches: matches.remove(current_word)
@@ -52,7 +61,7 @@ class Autocomplete:
     def show_suggestions(self, matches):
         if self.suggestions_listbox:
             self.suggestions_listbox.destroy()
-            
+
         if not self.suggestion_window:
             print("Pravim novi window!")
             self.suggestion_window = tk.Toplevel()
@@ -91,7 +100,7 @@ class Autocomplete:
 
         self.text_widget.focus_set()
 
-    def hide_suggestions(self):
+    def hide_suggestions(self, event=None):
         if self.suggestion_window:
             #self.suggestion_window.destroy()
             self.suggestion_window.withdraw()
@@ -123,8 +132,10 @@ class Autocomplete:
 
     def insert_selected(self, event):
         selected_word = self.suggestions_listbox.get(tk.ACTIVE)
-        current_word = self.get_current_word()
+        current_word = self.get_current_word().replace("	", "")
+        print("Current word =", current_word)
         self.text_widget.insert(tk.INSERT, selected_word[len(current_word):])
+        print("Inserting", selected_word[len(current_word):])
         self.hide_suggestions()
 
         self.text_widget.focus_set()
