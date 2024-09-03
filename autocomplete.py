@@ -35,13 +35,15 @@ class Autocomplete:
 
     def on_key_release(self, event):
         exit_from = False
-        if event.keysym in ['BackSpace', 'Delete', 'Escape', 'Return']:
-            self.hide_suggestions()
-            exit_from = True
-        
-        if event.keysym in ['Return', 'Space']:
-            self.refresh_variables()
-            exit_from = True
+        try:
+            if event.keysym in ['BackSpace', 'Delete', 'Escape', 'Return']:
+                self.hide_suggestions()
+                exit_from = True
+            
+            if event.keysym in ['Return', 'Space']:
+                self.refresh_variables()
+                exit_from = True
+        except: pass
         
         if exit_from: return
 
