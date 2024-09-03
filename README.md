@@ -1,0 +1,1 @@
+Treba instalirati asc, tkinter
