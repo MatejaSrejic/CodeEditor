@@ -1,0 +1,61 @@
+if self.suggestions_listbox:
+            print("Destroyed")
+            self.suggestions_listbox.destroy()
+
+        if not self.suggestion_window:
+            self.suggestion_window = tk.Toplevel()
+            self.suggestion_window.wm_overrideredirect(True)
+    
+        if self.suggestion_window_hidden:
+            self.suggestion_window.deiconify()
+            self.suggestion_window_hidden = False
+            print("Shown")
+            #self.suggestion_window.wm_attributes('-type', 'splash')
+
+        try:
+            x, y, _, _ = self.text_widget.bbox(tk.INSERT)
+            x += self.text_widget.winfo_rootx()
+            y += self.text_widget.winfo_rooty() + 20 
+            self.suggestion_window.geometry(f"+{x}+{y}")
+            print("Moved toplevel")
+        except:
+            # self.hide_suggestions()
+            return
+        
+
+        self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
+        self.suggestions_listbox.pack()
+        print("Create listbox")
+
+        for match in matches:
+            self.suggestions_listbox.insert(tk.END, match)
+
+        print("Updated content of listbox", self.suggestions_listbox.get(0, "end"))
+
+        #self.suggestions_listbox.exportselection = False   
+
+        #self.suggestions_listbox.pack() MOZDA POSLE INSERT?
+
+        self.suggestions_listbox.bind("<Return>", self.insert_selected)
+        self.suggestions_listbox.bind("<Double-Button-1>", self.insert_selected)
+
+        self.text_widget.bind("<Up>", self.focus_listbox)
+        self.text_widget.bind("<Down>", self.focus_listbox)
+
+        self.text_widget.focus_set()
+
+
+
+
+
+
+
+def insert_selected(self, event):
+        selected_word = self.suggestions_listbox.get(tk.ACTIVE)
+        current_word = self.get_current_word().replace("	", "")
+        print("Current word =", current_word)
+        self.text_widget.insert(tk.INSERT, selected_word[len(current_word):])
+        print("Inserting", selected_word[len(current_word):])
+        self.hide_suggestions()
+
+        self.text_widget.focus_set()

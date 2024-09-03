@@ -1,5 +1,5 @@
-print("Hello world")
-a = 2
-b = 1
-if (a>b):
-	print("Ok")
+var1 = 4
+var2 = var1+2
+def test():
+	pass
+test()

@@ -1,17 +1,29 @@
 import ast
+import tkinter as tk
 
 class ASTree:
     def __init__(self, code):
         self.code = code
         self.variables = []
+        self.functions = []
 
     def retrieve_variables(self):
-        try:
-            tree = ast.parse(self.code)
-            self.visit(tree)
-            print("Vars:", self.variables)
-        except: pass
         return self.variables
+    
+    def retrieve_functions(self):
+        return self.functions
+    
+
+    def parse_code(self, current_line_number):
+        lines = self.code.splitlines()
+        lines_to_parse = lines[:current_line_number - 1] + lines[current_line_number:]
+
+        code_to_parse = '\n'.join(lines_to_parse)
+
+        try:
+            tree = ast.parse(code_to_parse)
+            self.visit(tree)
+        except: pass
 
     def visit(self, node):
         if isinstance(node, ast.Assign):
@@ -23,7 +35,7 @@ class ASTree:
                         if isinstance(element, ast.Name):
                             self.variables.append(element.id)
         elif isinstance(node, ast.FunctionDef):
-            self.variables.append(node.name)
+            self.functions.append(node.name)
         
         for child in ast.iter_child_nodes(node):
             self.visit(child)
