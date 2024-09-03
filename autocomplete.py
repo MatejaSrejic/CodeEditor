@@ -6,11 +6,13 @@ from astree import ASTree
 class Autocomplete:
     def __init__(self, text_widget):
         self.text_widget = text_widget
-        self.suggestion_window = None
         self.suggestions_listbox = None
+        self.suggestion_window = tk.Toplevel()
+        self.suggestion_window.wm_overrideredirect(True)
+        self.suggestion_window_hidden = True
+        self.suggestion_window.withdraw()
 
         self.keywords = keyword.kwlist + dir(builtins)
-        self.keywords = list(set(self.keywords)) # izbrisi duplikate
         
         self.variables = []
 
@@ -19,6 +21,7 @@ class Autocomplete:
         analyzer = ASTree(text_widget_value)
         self.keywords = keyword.kwlist + dir(builtins)
         self.keywords += analyzer.retrieve_variables()
+        self.keywords = list(set(self.keywords))
     
     def find_matches(self, current_word, word_list):
         return [word for word in word_list if word.startswith(current_word)]
@@ -44,8 +47,10 @@ class Autocomplete:
                 self.show_suggestions(matches)
                 print("For word", current_word, "found", matches)
             else:
+                print("Hide1")
                 self.hide_suggestions()
         else:
+            print("Hide2")
             self.hide_suggestions()
 
     def get_current_word(self):
@@ -59,38 +64,23 @@ class Autocomplete:
         return ""
 
     def show_suggestions(self, matches):
-        if self.suggestions_listbox:
-            self.suggestions_listbox.destroy()
-
-        if not self.suggestion_window:
-            print("Pravim novi window!")
-            self.suggestion_window = tk.Toplevel()
-            self.suggestion_window.wm_overrideredirect(True)
-            #self.suggestion_window.wm_attributes('-type', 'splash')
-        else:
-            print("Vec postoji, otkrivam ga!")
+        # potreban listbox i toplevel
+        # alg: toplevel se kreira jedanput tokom __inic__, i samo se pomera
+        # listbox se svaki put unistava i ponovo kreira, vezan za novi pomereni toplevel
+        if self.suggestions_listbox: self.suggestions_listbox.withdraw()
+        if self.suggestion_window_hidden:
             self.suggestion_window.deiconify()
-
-        try:
-            x, y, _, _ = self.text_widget.bbox(tk.INSERT)
-            x += self.text_widget.winfo_rootx()
-            y += self.text_widget.winfo_rooty() + 20 
-            self.suggestion_window.geometry(f"+{x}+{y}")
-        except:
-            self.hide_suggestions()
-            return
+            self.suggestion_window_hidden = False
+        
+        x, y, _, _ = self.text_widget.bbox(tk.INSERT)
+        x += self.text_widget.winfo_rootx()
+        y += self.text_widget.winfo_rooty() + 20 
+        self.suggestion_window.geometry(f"+{x}+{y}")
 
         self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
+        self.suggestions_listbox.deiconify()
         self.suggestions_listbox.pack()
-
-        for match in matches:
-            self.suggestions_listbox.insert(tk.END, match)
-
-        print("Updated content of listbox", self.suggestions_listbox.get(0, "end"))
-
-        #self.suggestions_listbox.exportselection = False   
-
-        #self.suggestions_listbox.pack() MOZDA POSLE INSERT?
+        self.suggestions_listbox.insert("end", *matches)
 
         self.suggestions_listbox.bind("<Return>", self.insert_selected)
         self.suggestions_listbox.bind("<Double-Button-1>", self.insert_selected)
@@ -98,15 +88,17 @@ class Autocomplete:
         self.text_widget.bind("<Up>", self.focus_listbox)
         self.text_widget.bind("<Down>", self.focus_listbox)
 
-        self.text_widget.focus_set()
+        #self.text_widget.focus_set()
+
 
     def hide_suggestions(self, event=None):
-        if self.suggestion_window:
+        if not self.suggestion_window_hidden:
             #self.suggestion_window.destroy()
             self.suggestion_window.withdraw()
-            self.suggestion_window = None
+            self.suggestion_window_hidden = True
+            #self.suggestion_window = None
            #self.suggestions_listbox.pack_forget()
-            self.suggestions_listbox.destroy()
+            #self.suggestions_listbox.destroy()
             
     def focus_listbox(self, event):
         print("Detect ", event)
