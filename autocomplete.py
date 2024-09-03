@@ -2,6 +2,7 @@ import tkinter as tk
 import keyword
 import builtins
 from astree import ASTree
+import re as regex
 
 class Autocomplete:
     def __init__(self, text_widget):
@@ -11,46 +12,50 @@ class Autocomplete:
         self.suggestion_window.wm_overrideredirect(True)
         self.suggestion_window_hidden = True
         self.suggestion_window.withdraw()
+        self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
+        self.suggestions_listbox.pack()
 
-        self.keywords = keyword.kwlist + dir(builtins)
-        
+        self.keywords = list(set(keyword.kwlist + dir(builtins)))
         self.variables = []
+        self.functions = []
 
     def refresh_variables(self):
         text_widget_value = self.text_widget.get(1.0, "end")
+
+        cursor_position = self.text_widget.index(tk.INSERT)
+        line_number = cursor_position.split('.')[0]
+
         analyzer = ASTree(text_widget_value)
-        self.keywords = keyword.kwlist + dir(builtins)
-        self.keywords += analyzer.retrieve_variables()
-        self.keywords = list(set(self.keywords))
+        analyzer.parse_code(int(line_number))
+        self.variables = analyzer.retrieve_variables()
+        self.functions = analyzer.retrieve_functions()
     
     def find_matches(self, current_word, word_list):
-        return [word for word in word_list if word.startswith(current_word)]
+        return [word for word in word_list if word.lower().startswith(current_word.lower())]
 
     def on_key_release(self, event):
-        if event.keysym in ['BackSpace', 'Delete', 'Escape']:
+        exit_from = False
+        if event.keysym in ['BackSpace', 'Delete', 'Escape', 'Return']:
             self.hide_suggestions()
-            return
+            exit_from = True
         
         if event.keysym in ['Return', 'Space']:
             self.refresh_variables()
-            return
-
-        print("on_key_release triggered")
+            exit_from = True
+        
+        if exit_from: return
 
         current_word = self.get_current_word()
         current_word = current_word.replace("	", "")
         if current_word:
-            matches = self.find_matches(current_word, self.keywords + self.variables)
+            matches = self.find_matches(current_word, self.keywords + self.variables + self.functions)
+            print("For", current_word, "found", matches)
             if current_word in matches: matches.remove(current_word)
             if matches:
-                print("Trigger for release ", event)
-                self.show_suggestions(matches)
-                print("For word", current_word, "found", matches)
+                self.show_suggestions(list(set(matches)))
             else:
-                print("Hide1")
                 self.hide_suggestions()
         else:
-            print("Hide2")
             self.hide_suggestions()
 
     def get_current_word(self):
@@ -58,16 +63,16 @@ class Autocomplete:
         line_start = str(cursor_position.split('.')[0]) + ".0"
         line_text = self.text_widget.get(line_start, cursor_position)
 
-        words = line_text.split(" ")
-        if words:
-            return words[-1]
-        return ""
+        match = regex.search(r'\b(\w+)$', line_text)
+    
+        if match:
+            return match.group(1)
+        else:
+            return ""
 
     def show_suggestions(self, matches):
         # potreban listbox i toplevel
-        # alg: toplevel se kreira jedanput tokom __inic__, i samo se pomera
-        # listbox se svaki put unistava i ponovo kreira, vezan za novi pomereni toplevel
-        if self.suggestions_listbox: self.suggestions_listbox.withdraw()
+        # alg: toplevel i listbox se kreiraju jedanput tokom __inic__, i samo se pomera toplevel
         if self.suggestion_window_hidden:
             self.suggestion_window.deiconify()
             self.suggestion_window_hidden = False
@@ -77,9 +82,7 @@ class Autocomplete:
         y += self.text_widget.winfo_rooty() + 20 
         self.suggestion_window.geometry(f"+{x}+{y}")
 
-        self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
-        self.suggestions_listbox.deiconify()
-        self.suggestions_listbox.pack()
+        self.suggestions_listbox.delete(0, "end")
         self.suggestions_listbox.insert("end", *matches)
 
         self.suggestions_listbox.bind("<Return>", self.insert_selected)
@@ -88,50 +91,52 @@ class Autocomplete:
         self.text_widget.bind("<Up>", self.focus_listbox)
         self.text_widget.bind("<Down>", self.focus_listbox)
 
-        #self.text_widget.focus_set()
+        self.text_widget.focus_set()
 
 
     def hide_suggestions(self, event=None):
         if not self.suggestion_window_hidden:
-            #self.suggestion_window.destroy()
             self.suggestion_window.withdraw()
             self.suggestion_window_hidden = True
-            #self.suggestion_window = None
-           #self.suggestions_listbox.pack_forget()
-            #self.suggestions_listbox.destroy()
             
     def focus_listbox(self, event):
-        print("Detect ", event)
         self.suggestions_listbox.focus_set()
         self.navigate_suggestions(event)
 
     def navigate_suggestions(self, event):
         current_selection = self.suggestions_listbox.curselection()
         if event.keysym == "Down":
-            print("Autocomplete down")
             if current_selection:
                 next_index = (current_selection[0] + 1) % self.suggestions_listbox.size()
             else:
-                next_index = 0
-            self.suggestions_listbox.select_set(next_index)
+                next_index = -1
         elif event.keysym == "Up":
-            print("Autocomplete u")
             if current_selection:
                 next_index = (current_selection[0] - 1) % self.suggestions_listbox.size()
             else:
                 next_index = self.suggestions_listbox.size() - 1
-            self.suggestions_listbox.select_set(next_index)
+
+        self.suggestions_listbox.selection_clear(0, tk.END)  # Clear previous selection
+        self.suggestions_listbox.selection_set(next_index)
+        self.suggestions_listbox.see(next_index)  # Ensure the item is visible
+        self.suggestions_listbox.activate(next_index)  # Set the active focus to this item
 
     def insert_selected(self, event):
         selected_word = self.suggestions_listbox.get(tk.ACTIVE)
-        current_word = self.get_current_word().replace("	", "")
-        print("Current word =", current_word)
-        self.text_widget.insert(tk.INSERT, selected_word[len(current_word):])
-        print("Inserting", selected_word[len(current_word):])
+
+        cursor_position = self.text_widget.index('insert')
+        start_position = self.text_widget.search(r'\w*$', cursor_position, backwards=True, regexp=True)
+        if start_position == '':
+            start_position = cursor_position
+        self.text_widget.delete(start_position, cursor_position)
+        self.text_widget.insert(start_position, selected_word)
+        
+        self.text_widget.mark_set('insert', f"{start_position}+{len(selected_word)}c")
         self.hide_suggestions()
 
-        self.text_widget.focus_set()
+        if (selected_word in self.functions):
+            current_position = self.text_widget.index(tk.INSERT)
+            self.text_widget.insert(current_position, '()')
+            self.text_widget.mark_set('insert', f"{current_position}+{1}c")
 
-    def add_variable(self, variable_name):
-        if variable_name not in self.variables:
-            self.variables.append(variable_name)
+        self.text_widget.focus_set()

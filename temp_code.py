@@ -1,5 +1,10 @@
 print("Hello world")
-a = 2
-b = 1
-if (a>b):
-	print("Ok")
+def test():	
+	var1, var2 = 5, 4
+	if (var1 > var2):
+		print(True)
+
+test()
+
+
+

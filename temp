@@ -43,3 +43,19 @@ if self.suggestions_listbox:
         self.text_widget.bind("<Down>", self.focus_listbox)
 
         self.text_widget.focus_set()
+
+
+
+
+
+
+
+def insert_selected(self, event):
+        selected_word = self.suggestions_listbox.get(tk.ACTIVE)
+        current_word = self.get_current_word().replace("	", "")
+        print("Current word =", current_word)
+        self.text_widget.insert(tk.INSERT, selected_word[len(current_word):])
+        print("Inserting", selected_word[len(current_word):])
+        self.hide_suggestions()
+
+        self.text_widget.focus_set()
