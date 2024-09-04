@@ -10,53 +10,36 @@ class CodeEditor:
         self.root = root
         self.root.title("Python Code Editor")
 
-        # Create the main container frames
-        self.left_frame = Frame(root)
-        self.left_frame.pack(side=tk.LEFT, fill=tk.Y)
+        self.main_vertical_frame = Frame(root)
+        self.main_vertical_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.horizontal_frame = Frame(self.main_vertical_frame)
+        self.horizontal_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.center_frame = Frame(root)
-        self.center_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        # File Explorer on the left
-        self.file_list = Listbox(self.left_frame)
-        self.file_list.pack(expand=True, fill='both')
+        self.file_list = Listbox(self.horizontal_frame)
+        self.file_list.pack(side=tk.LEFT, fill='y')
         self.file_list.bind('<Double-Button-1>', self.load_selected_file)
 
-        # Create a sub-frame inside center_frame for text area and output console
-        self.text_output_frame = Frame(self.center_frame)
-        self.text_output_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Line numbers
-        self.line_numbers = tk.Text(self.text_output_frame, width=4, padx=4, takefocus=0,
+        self.line_numbers = tk.Text(self.horizontal_frame, width=4, padx=4, takefocus=0,
                                     borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Text area next to line numbers
-        self.text_area = scrolledtext.ScrolledText(self.text_output_frame, wrap=tk.WORD, font=("Consolas", 12))
+        self.text_area = scrolledtext.ScrolledText(self.horizontal_frame, wrap=tk.WORD, font=("Consolas", 12))
         self.text_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Output console below the text area
-        self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
-        self.output_area.pack(side=tk.BOTTOM, fill=tk.X)
+        self.output_area = scrolledtext.ScrolledText(self.main_vertical_frame, wrap=tk.WORD, height=10, font=("Consolas", 10))
+        self.output_area.pack(side=tk.TOP, fill=tk.X)
 
         self.autocomplete = Autocomplete(self.text_area)
-        
+
         self.current_filepath = ""
         self.changed = False
         self.create_menu()
-        
-        self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
-        self.output_area.pack(expand=True, fill='both')
-
         self.text_area.bind("<KeyRelease>", self.highlight_syntax)
         self.undo_stack = []
         self.redo_stack = []
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-
-        # Synchronize the scrollbars
-        # self.text_area.config(yscrollcommand=self.on_scroll)
         self.line_numbers.config(yscrollcommand=self.on_scroll)
         self.text_area.bind("<MouseWheel>", self.on_mousewheel)
         self.text_area.bind("<Button-4>", self.on_mousewheel)
@@ -80,7 +63,6 @@ class CodeEditor:
         self.root.quit()
     
     def on_change(self, event=None):
-        # Exclude keys that don't type
         non_typing_keys = {'Shift_R', 'Shift_L', 'Control_R', 'Control_L', 'Alt_R', 'Alt_L', 'Caps_Lock', 'Num_Lock', 'Scroll_Lock'}
         if event.keysym not in non_typing_keys:
             self.changed = True
@@ -177,41 +159,26 @@ class CodeEditor:
         self.text_area.edit_redo()
 
     def update_line_numbers(self, event=None):
-        # Update line numbers
         self.line_numbers.config(state=tk.NORMAL)
         self.line_numbers.delete("1.0", tk.END)
 
-        # Get number of lines in text widget
         num_lines = int(self.text_area.index('end-1c').split('.')[0])
 
-        # Add line numbers to the line_numbers widget
         for i in range(1, num_lines + 1):
             self.line_numbers.insert(tk.END, f"{i}\n")
 
         self.line_numbers.config(state=tk.DISABLED)
 
     def on_scroll(self, *args):
-        # print("ARGS")
-        # print(*args)
-        print(self.text_area.vbar.get())
-        # Scroll the line_numbers widget when the text_area is scrolled
         self.line_numbers.yview("moveto", args[1])
-        #self.line_numbers.see()
-
-    # def on_scroll2(self, *args):
-    #     print("ARGS")
-    #     print(*args)
-    #     # Scroll the line_numbers widget when the text_area is scrolled
         self.text_area.yview("moveto", args[1])
 
     def on_mousewheel(self, event):
-        # Handle mouse wheel scrolling
         self.text_area.yview_scroll(int(-1 * (event.delta / 120)), "units")
         self.line_numbers.yview_scroll(int(-1 * (event.delta / 120)), "units")
         return "break"
 
     def populate_file_list(self):
-        # Populate the file list with Python files from the current directory
         for file in os.listdir('.'):
             if file.endswith('.py'):
                 self.file_list.insert(tk.END, file)
