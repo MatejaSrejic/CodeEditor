@@ -4,6 +4,7 @@ import subprocess
 import keyword
 import os
 from autocomplete import Autocomplete
+from syntax import SyntaxHighlighting
 
 class CodeEditor:
     def __init__(self, root):
@@ -32,11 +33,12 @@ class CodeEditor:
         self.output_area.pack(side=tk.TOP, fill=tk.X)
 
         self.autocomplete = Autocomplete(self.text_area)
+        self.syntax = SyntaxHighlighting(self.text_area)
 
         self.current_filepath = ""
         self.changed = False
         self.create_menu()
-        self.text_area.bind("<KeyRelease>", self.highlight_syntax)
+        self.text_area.bind("<KeyRelease>", self.on_key_release)
         self.undo_stack = []
         self.redo_stack = []
 
@@ -49,6 +51,7 @@ class CodeEditor:
         self.text_area.bind("<Control-y>", self.redo)
         self.text_area.bind("<Control-z>", self.undo)
         self.text_area.bind("<KeyPress>", self.on_change)
+        self.text_area.bind("<<Modified>>", self.syntax.on_text_change)
 
         self.root.bind_all("<Control-s>", self.save_file)
         self.root.bind_all("<Control-n>", self.new_file)
@@ -96,20 +99,9 @@ class CodeEditor:
         if folder_path:
             self.populate_file_list(folder_path)
 
-    def highlight_syntax(self, event=None):
+    def on_key_release(self, event=None):
         self.autocomplete.on_key_release(event)
         self.update_line_numbers(event)
-        self.text_area.tag_remove("keyword", "1.0", tk.END)
-        for kw in keyword.kwlist:
-            start_index = '1.0'
-            while True:
-                start_index = self.text_area.search(kw, start_index, stopindex=tk.END)
-                if not start_index:
-                    break
-                end_index = f"{start_index}+{len(kw)}c"
-                self.text_area.tag_add("keyword", start_index, end_index)
-                start_index = end_index
-        self.text_area.tag_config("keyword", foreground="blue")
 
     def open_file(self, event=None):
         if self.text_area.get(1.0, tk.END) != "" and self.changed:
