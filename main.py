@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, scrolledtext, Frame, Listbox
+from tkinter import filedialog, messagebox, scrolledtext, Frame, Listbox, Scrollbar
 import subprocess
 import keyword
 import os
@@ -15,9 +15,11 @@ class CodeEditor:
         self.horizontal_frame = Frame(self.main_vertical_frame)
         self.horizontal_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
+
         self.file_list = Listbox(self.horizontal_frame)
         self.file_list.pack(side=tk.LEFT, fill='y')
         self.file_list.bind('<Double-Button-1>', self.load_selected_file)
+
 
         self.line_numbers = tk.Text(self.horizontal_frame, width=4, padx=4, takefocus=0,
                                     borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
@@ -73,20 +75,26 @@ class CodeEditor:
         
         file_menu = tk.Menu(menu)
         menu.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="New", command=self.new_file, accelerator="Ctrl+N")
-        file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
-        file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
+        file_menu.add_command(label="New File", command=self.new_file)
+        file_menu.add_command(label="Open Folder", command=self.open_folder)
+        file_menu.add_command(label="Save", command=self.save_file)
+        file_menu.add_command(label="Save As", command=self.save_as_file)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
         
         edit_menu = tk.Menu(menu)
         menu.add_cascade(label="Edit", menu=edit_menu)
-        edit_menu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
-        edit_menu.add_command(label="Redo", command=self.redo, accelerator="Ctrl+Y")
+        edit_menu.add_command(label="Undo", command=self.undo)
+        edit_menu.add_command(label="Redo", command=self.redo)
         
         run_menu = tk.Menu(menu)
         menu.add_cascade(label="Run", menu=run_menu)
         run_menu.add_command(label="Run Code", command=self.run_code)
+
+    def open_folder(self):
+        folder_path = filedialog.askdirectory()
+        if folder_path:
+            self.populate_file_list(folder_path)
 
     def highlight_syntax(self, event=None):
         self.autocomplete.on_key_release(event)
@@ -127,6 +135,15 @@ class CodeEditor:
             with open(self.current_filepath, 'w', encoding='utf-8') as file:
                 file.write(self.text_area.get(1.0, tk.END))
         self.unchange()
+
+    def save_as_file(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python files", "*.py")])
+        if file_path:
+            with open(file_path, 'w') as file:
+                file.write(self.text_area.get(1.0, tk.END))
+            self.current_file = file_path
+            if file_path not in self.file_list.get(0, tk.END):
+                self.file_list.insert(tk.END, file_path)
 
     def new_file(self, event=None):
         if self.text_area.get(1.0, tk.END) != "" and self.changed:
@@ -178,10 +195,13 @@ class CodeEditor:
         self.line_numbers.yview_scroll(int(-1 * (event.delta / 120)), "units")
         return "break"
 
-    def populate_file_list(self):
-        for file in os.listdir('.'):
+    def populate_file_list(self, folder_path=None):
+        self.file_list.delete(0, tk.END)
+        folder_path = folder_path or '.'
+        for file in os.listdir(folder_path):
             if file.endswith('.py'):
-                self.file_list.insert(tk.END, file)
+                self.file_list.insert(tk.END, os.path.join(folder_path, file))
+
 
 if __name__ == "__main__":
     root = tk.Tk()
