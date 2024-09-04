@@ -26,7 +26,7 @@ class CodeEditor:
                                     borderwidth=0, background="lightgray", state="disabled", font=("Courier New", 16))
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
 
-        self.text_area = scrolledtext.ScrolledText(self.horizontal_frame, wrap=tk.WORD, font=("Courier New", 16))
+        self.text_area = scrolledtext.ScrolledText(self.horizontal_frame, wrap=tk.WORD, font=("Courier New", 16), undo=True)
         self.text_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.output_area = scrolledtext.ScrolledText(self.main_vertical_frame, wrap=tk.WORD, height=10, font=("Courier New", 16))
@@ -166,9 +166,11 @@ class CodeEditor:
         self.output_area.insert(tk.END, result.stdout + result.stderr)
 
     def undo(self, event=None):
+        print("Attempt undo")
         self.text_area.edit_undo()
 
     def redo(self, event=None):
+        print("Attempt redo")
         self.text_area.edit_redo()
 
     def update_line_numbers(self, event=None):
