@@ -174,3 +174,4 @@ class Autocomplete:
         if closing_bracket:
             self.text_widget.insert(tk.INSERT, closing_bracket)
             self.text_widget.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
+
