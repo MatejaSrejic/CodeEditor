@@ -12,7 +12,6 @@ class ASTree:
     
     def retrieve_functions(self):
         return self.functions
-    
 
     def parse_code(self, current_line_number):
         lines = self.code.splitlines()
