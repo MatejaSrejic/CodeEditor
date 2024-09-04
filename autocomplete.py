@@ -51,7 +51,6 @@ class Autocomplete:
         current_word = current_word.replace("	", "")
         if current_word:
             matches = self.find_matches(current_word, self.keywords + self.variables + self.functions)
-            print("For", current_word, "found", matches)
             if current_word in matches: matches.remove(current_word)
             if matches:
                 self.show_suggestions(list(set(matches)))
