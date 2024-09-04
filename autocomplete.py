@@ -20,6 +20,10 @@ class Autocomplete:
         self.functions = []
         self.default_functions = []
 
+        self.text_widget.bind("(", self.insert_closing_bracket)
+        self.text_widget.bind("[", self.insert_closing_bracket)
+        self.text_widget.bind("{", self.insert_closing_bracket)
+
         for bulletin in dir(builtins):
             if bulletin[0].lower() == bulletin[0]:
                 self.default_functions.append(bulletin)
@@ -101,7 +105,6 @@ class Autocomplete:
 
         self.text_widget.focus_set()
 
-
     def hide_suggestions(self, event=None):
         if not self.suggestion_window_hidden:
             self.suggestion_window.withdraw()
@@ -162,3 +165,12 @@ class Autocomplete:
             self.text_widget.mark_set('insert', f"{current_position}+{1}c")
 
         self.text_widget.focus_set()
+    
+    def insert_closing_bracket(self, event):
+        brackets = {'(': ')', '[': ']', '{': '}'}
+        opening_bracket = event.char
+        closing_bracket = brackets.get(opening_bracket)
+        
+        if closing_bracket:
+            self.text_widget.insert(tk.INSERT, closing_bracket)
+            self.text_widget.mark_set(tk.INSERT, f"{tk.INSERT}-1c")

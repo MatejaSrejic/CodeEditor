@@ -98,6 +98,7 @@ class CodeEditor:
         folder_path = filedialog.askdirectory()
         if folder_path:
             self.populate_file_list(folder_path)
+            self.current_filepath = folder_path
 
     def on_key_release(self, event=None):
         self.autocomplete.on_key_release(event)
@@ -127,6 +128,7 @@ class CodeEditor:
             with open(self.current_filepath, 'w', encoding='utf-8') as file:
                 file.write(self.text_area.get(1.0, tk.END))
         self.unchange()
+        self.populate_file_list(self.current_filepath)
 
     def save_as_file(self):
         file_path = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python files", "*.py")])
@@ -136,6 +138,7 @@ class CodeEditor:
             self.current_file = file_path
             if file_path not in self.file_list.get(0, tk.END):
                 self.file_list.insert(tk.END, file_path)
+        self.populate_file_list(self.current_filepath)
 
     def new_file(self, event=None):
         if self.text_area.get(1.0, tk.END) != "" and self.changed:
@@ -145,6 +148,7 @@ class CodeEditor:
         self.text_area.delete(1.0, tk.END)
         self.root.after_idle(self.unchange)
         self.update_line_numbers()
+        #self.populate_file_list(self.current_filepath)
 
     def load_selected_file(self, event):
         selected_file = self.file_list.get(self.file_list.curselection())
@@ -193,7 +197,6 @@ class CodeEditor:
         for file in os.listdir(folder_path):
             if file.endswith('.py'):
                 self.file_list.insert(tk.END, os.path.join(folder_path, file))
-
 
 if __name__ == "__main__":
     root = tk.Tk()
