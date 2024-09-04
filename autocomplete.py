@@ -142,7 +142,21 @@ class Autocomplete:
         self.text_widget.mark_set('insert', f"{start_position}+{len(selected_word)}c")
         self.hide_suggestions()
 
-        if (selected_word in self.functions or selected_word in self.default_functions):
+        # code snippets
+        if (selected_word == "def"):
+            # add function(): 
+            # highlight function
+            current_position = self.text_widget.index(tk.INSERT)
+            self.text_widget.insert(current_position, ' function():\n    ')
+            # Calculate start and end positions of 'function'
+            snippet_start = f"{current_position} + 1c"  # Assuming a space before 'function'
+            snippet_end = f"{snippet_start} + {len('function')}c"
+            
+            # Highlight the 'function' text
+            self.text_widget.mark_set('insert', snippet_start)  # Move cursor to the start of 'function'
+            self.text_widget.tag_add(tk.SEL, snippet_start, snippet_end)  # Select 'function'
+            self.text_widget.see(tk.INSERT)  # Make sure the insertion point is visible
+        elif (selected_word in self.functions or selected_word in self.default_functions):
             current_position = self.text_widget.index(tk.INSERT)
             self.text_widget.insert(current_position, '()')
             self.text_widget.mark_set('insert', f"{current_position}+{1}c")
