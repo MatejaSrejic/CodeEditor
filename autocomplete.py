@@ -15,9 +15,16 @@ class Autocomplete:
         self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
         self.suggestions_listbox.pack()
 
-        self.keywords = list(set(keyword.kwlist + dir(builtins)))
+        self.keywords = keyword.kwlist
         self.variables = []
         self.functions = []
+        self.default_functions = []
+
+        for bulletin in dir(builtins):
+            if bulletin[0].lower() == bulletin[0]:
+                self.default_functions.append(bulletin)
+            else:
+                self.keywords.append(bulletin)
 
     def refresh_variables(self):
         text_widget_value = self.text_widget.get(1.0, "end")
@@ -50,7 +57,7 @@ class Autocomplete:
         current_word = self.get_current_word()
         current_word = current_word.replace("	", "")
         if current_word:
-            matches = self.find_matches(current_word, self.keywords + self.variables + self.functions)
+            matches = self.find_matches(current_word, list(set(self.keywords + self.variables + self.functions + self.default_functions)))
             if current_word in matches: matches.remove(current_word)
             if matches:
                 self.show_suggestions(list(set(matches)))
@@ -135,7 +142,7 @@ class Autocomplete:
         self.text_widget.mark_set('insert', f"{start_position}+{len(selected_word)}c")
         self.hide_suggestions()
 
-        if (selected_word in self.functions):
+        if (selected_word in self.functions or selected_word in self.default_functions):
             current_position = self.text_widget.index(tk.INSERT)
             self.text_widget.insert(current_position, '()')
             self.text_widget.mark_set('insert', f"{current_position}+{1}c")

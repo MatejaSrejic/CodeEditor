@@ -23,13 +23,13 @@ class CodeEditor:
 
 
         self.line_numbers = tk.Text(self.horizontal_frame, width=4, padx=4, takefocus=0,
-                                    borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
+                                    borderwidth=0, background="lightgray", state="disabled", font=("Courier New", 16))
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
 
-        self.text_area = scrolledtext.ScrolledText(self.horizontal_frame, wrap=tk.WORD, font=("Consolas", 12))
+        self.text_area = scrolledtext.ScrolledText(self.horizontal_frame, wrap=tk.WORD, font=("Courier New", 16))
         self.text_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.output_area = scrolledtext.ScrolledText(self.main_vertical_frame, wrap=tk.WORD, height=10, font=("Consolas", 10))
+        self.output_area = scrolledtext.ScrolledText(self.main_vertical_frame, wrap=tk.WORD, height=10, font=("Courier New", 16))
         self.output_area.pack(side=tk.TOP, fill=tk.X)
 
         self.autocomplete = Autocomplete(self.text_area)

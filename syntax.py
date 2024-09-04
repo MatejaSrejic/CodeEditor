@@ -23,10 +23,6 @@ class SyntaxHighlighting:
         for key, value in self.dict.items():
             self.text_widget.tag_config(key, foreground=value)
 
-        print("Init success")
-
-
-
     def highlight_syntax(self, code):
         # Highlight comments and strings using regex
         comment_pattern = r'#.*'

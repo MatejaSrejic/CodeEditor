@@ -1,6 +1,1 @@
-jjk
-f
-f
-f
-f
-
+print("Hello world")
