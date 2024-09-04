@@ -9,16 +9,35 @@ class CodeEditor:
     def __init__(self, root):
         self.root = root
         self.root.title("Python Code Editor")
-        
-        self.frame = Frame(root)
-        self.frame.pack(side=tk.LEFT, fill=tk.Y)
-        
-        self.file_list = Listbox(self.frame)
+
+        # Create the main container frames
+        self.left_frame = Frame(root)
+        self.left_frame.pack(side=tk.LEFT, fill=tk.Y)
+
+        self.center_frame = Frame(root)
+        self.center_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # File Explorer on the left
+        self.file_list = Listbox(self.left_frame)
         self.file_list.pack(expand=True, fill='both')
         self.file_list.bind('<Double-Button-1>', self.load_selected_file)
 
-        self.text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 12))
-        self.text_area.pack(expand=True, fill='both')
+        # Create a sub-frame inside center_frame for text area and output console
+        self.text_output_frame = Frame(self.center_frame)
+        self.text_output_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Line numbers
+        self.line_numbers = tk.Text(self.text_output_frame, width=4, padx=4, takefocus=0,
+                                    borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
+        self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
+
+        # Text area next to line numbers
+        self.text_area = scrolledtext.ScrolledText(self.text_output_frame, wrap=tk.WORD, font=("Consolas", 12))
+        self.text_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Output console below the text area
+        self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
+        self.output_area.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.autocomplete = Autocomplete(self.text_area)
         
@@ -35,14 +54,10 @@ class CodeEditor:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        # Create a canvas for line numbers
-        self.line_numbers = tk.Text(self.frame, width=4, padx=4, takefocus=0,
-                                    borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
-        self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
+
         # Synchronize the scrollbars
         # self.text_area.config(yscrollcommand=self.on_scroll)
         self.line_numbers.config(yscrollcommand=self.on_scroll)
-        self.text_area.bind("<KeyRelease>", self.update_line_numbers)
         self.text_area.bind("<MouseWheel>", self.on_mousewheel)
         self.text_area.bind("<Button-4>", self.on_mousewheel)
         self.text_area.bind("<Button-5>", self.on_mousewheel)
@@ -93,6 +108,7 @@ class CodeEditor:
 
     def highlight_syntax(self, event=None):
         self.autocomplete.on_key_release(event)
+        self.update_line_numbers(event)
         self.text_area.tag_remove("keyword", "1.0", tk.END)
         for kw in keyword.kwlist:
             start_index = '1.0'
