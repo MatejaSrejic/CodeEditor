@@ -15,9 +15,20 @@ class Autocomplete:
         self.suggestions_listbox = tk.Listbox(self.suggestion_window, selectmode=tk.SINGLE)
         self.suggestions_listbox.pack()
 
-        self.keywords = list(set(keyword.kwlist + dir(builtins)))
+        self.keywords = keyword.kwlist
         self.variables = []
         self.functions = []
+        self.default_functions = []
+
+        self.text_widget.bind("(", self.insert_closing_bracket)
+        self.text_widget.bind("[", self.insert_closing_bracket)
+        self.text_widget.bind("{", self.insert_closing_bracket)
+
+        for bulletin in dir(builtins):
+            if bulletin[0].lower() == bulletin[0]:
+                self.default_functions.append(bulletin)
+            else:
+                self.keywords.append(bulletin)
 
     def refresh_variables(self):
         text_widget_value = self.text_widget.get(1.0, "end")
@@ -50,7 +61,7 @@ class Autocomplete:
         current_word = self.get_current_word()
         current_word = current_word.replace("	", "")
         if current_word:
-            matches = self.find_matches(current_word, self.keywords + self.variables + self.functions)
+            matches = self.find_matches(current_word, list(set(self.keywords + self.variables + self.functions + self.default_functions)))
             if current_word in matches: matches.remove(current_word)
             if matches:
                 self.show_suggestions(list(set(matches)))
@@ -94,7 +105,6 @@ class Autocomplete:
 
         self.text_widget.focus_set()
 
-
     def hide_suggestions(self, event=None):
         if not self.suggestion_window_hidden:
             self.suggestion_window.withdraw()
@@ -135,9 +145,32 @@ class Autocomplete:
         self.text_widget.mark_set('insert', f"{start_position}+{len(selected_word)}c")
         self.hide_suggestions()
 
-        if (selected_word in self.functions):
+        # code snippets
+        if (selected_word == "def"):
+            # add function(): 
+            # highlight function
+            current_position = self.text_widget.index(tk.INSERT)
+            self.text_widget.insert(current_position, ' function():\n    ')
+            # Calculate start and end positions of 'function'
+            snippet_start = f"{current_position} + 1c"  # Assuming a space before 'function'
+            snippet_end = f"{snippet_start} + {len('function')}c"
+            
+            # Highlight the 'function' text
+            self.text_widget.mark_set('insert', snippet_start)  # Move cursor to the start of 'function'
+            self.text_widget.tag_add(tk.SEL, snippet_start, snippet_end)  # Select 'function'
+            self.text_widget.see(tk.INSERT)  # Make sure the insertion point is visible
+        elif (selected_word in self.functions or selected_word in self.default_functions):
             current_position = self.text_widget.index(tk.INSERT)
             self.text_widget.insert(current_position, '()')
             self.text_widget.mark_set('insert', f"{current_position}+{1}c")
 
         self.text_widget.focus_set()
+    
+    def insert_closing_bracket(self, event):
+        brackets = {'(': ')', '[': ']', '{': '}'}
+        opening_bracket = event.char
+        closing_bracket = brackets.get(opening_bracket)
+        
+        if closing_bracket:
+            self.text_widget.insert(tk.INSERT, closing_bracket)
+            self.text_widget.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
