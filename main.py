@@ -22,6 +22,8 @@ class CodeEditor:
 
         self.autocomplete = Autocomplete(self.text_area)
         
+        self.current_filepath = ""
+        self.changed = False
         self.create_menu()
         
         self.output_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, font=("Consolas", 10))
@@ -33,12 +35,40 @@ class CodeEditor:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        # Create a canvas for line numbers
+        self.line_numbers = tk.Text(self.frame, width=4, padx=4, takefocus=0,
+                                    borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
+        self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
+        # Synchronize the scrollbars
+        # self.text_area.config(yscrollcommand=self.on_scroll)
+        self.line_numbers.config(yscrollcommand=self.on_scroll)
+        self.text_area.bind("<KeyRelease>", self.update_line_numbers)
+        self.text_area.bind("<MouseWheel>", self.on_mousewheel)
+        self.text_area.bind("<Button-4>", self.on_mousewheel)
+        self.text_area.bind("<Button-5>", self.on_mousewheel)
+        self.text_area.bind("<Control-y>", self.redo)
+        self.text_area.bind("<Control-z>", self.undo)
+        self.text_area.bind("<KeyPress>", self.on_change)
+
+        self.root.bind_all("<Control-s>", self.save_file)
+        self.root.bind_all("<Control-n>", self.new_file)
+        self.root.bind_all("<Control-o>", self.open_file)
+
         self.populate_file_list()
+
+    def unchange(self):
+        self.changed = False
 
     def on_closing(self):
         if messagebox.askyesno("Quit", "Do you want to save your progress?"):
             self.save_file()
         self.root.quit()
+    
+    def on_change(self, event=None):
+        # Exclude keys that don't type
+        non_typing_keys = {'Shift_R', 'Shift_L', 'Control_R', 'Control_L', 'Alt_R', 'Alt_L', 'Caps_Lock', 'Num_Lock', 'Scroll_Lock'}
+        if event.keysym not in non_typing_keys:
+            self.changed = True
 
     def create_menu(self):
         menu = tk.Menu(self.root)
@@ -46,16 +76,16 @@ class CodeEditor:
         
         file_menu = tk.Menu(menu)
         menu.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="New File", command=self.new_file)
-        file_menu.add_command(label="Open", command=self.open_file)
-        file_menu.add_command(label="Save", command=self.save_file)
+        file_menu.add_command(label="New", command=self.new_file, accelerator="Ctrl+N")
+        file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
+        file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
         
         edit_menu = tk.Menu(menu)
         menu.add_cascade(label="Edit", menu=edit_menu)
-        edit_menu.add_command(label="Undo", command=self.undo)
-        edit_menu.add_command(label="Redo", command=self.redo)
+        edit_menu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
+        edit_menu.add_command(label="Redo", command=self.redo, accelerator="Ctrl+Y")
         
         run_menu = tk.Menu(menu)
         menu.add_cascade(label="Run", menu=run_menu)
@@ -75,24 +105,39 @@ class CodeEditor:
                 start_index = end_index
         self.text_area.tag_config("keyword", foreground="blue")
 
-    def open_file(self):
+    def open_file(self, event=None):
+        if self.text_area.get(1.0, tk.END) != "" and self.changed:
+            if messagebox.askyesno("Open file", "Do you want to save your progress?"):
+                self.save_file()
         file_path = filedialog.askopenfilename(defaultextension=".py", filetypes=[("Python files", "*.py")])
+        self.current_filepath = file_path
         if file_path:
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 self.text_area.delete(1.0, tk.END)
                 self.text_area.insert(tk.END, file.read())
             self.highlight_syntax()
-            self.file_list.insert(tk.END, file_path)
+        self.root.after_idle(self.unchange)
+        self.update_line_numbers()
 
-    def save_file(self):
-        file_path = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python files", "*.py")])
-        if file_path:
-            with open(file_path, 'w') as file:
+    def save_file(self, event=None):
+        if self.current_filepath == "":
+            fp = filedialog.asksaveasfilename(defaultextension=".py", filetypes=[("Python files", "*.py")])
+            if fp:
+                with open(fp, 'w', encoding='utf-8') as file:
+                    file.write(self.text_area.get(1.0, tk.END))
+        else:
+            with open(self.current_filepath, 'w', encoding='utf-8') as file:
                 file.write(self.text_area.get(1.0, tk.END))
+        self.unchange()
 
-    def new_file(self):
+    def new_file(self, event=None):
+        if self.text_area.get(1.0, tk.END) != "" and self.changed:
+            if messagebox.askyesno("New file", "Do you want to save your progress?"):
+                self.save_file()
+        self.current_filepath = ""
         self.text_area.delete(1.0, tk.END)
-        self.file_list.insert(tk.END, "Untitled")
+        self.root.after_idle(self.unchange)
+        self.update_line_numbers()
 
     def load_selected_file(self, event):
         selected_file = self.file_list.get(self.file_list.curselection())
@@ -109,17 +154,45 @@ class CodeEditor:
         self.output_area.delete(1.0, tk.END)
         self.output_area.insert(tk.END, result.stdout + result.stderr)
 
-    def undo(self):
-        if self.undo_stack:
-            self.redo_stack.append(self.text_area.get(1.0, tk.END))
-            self.text_area.delete(1.0, tk.END)
-            self.text_area.insert(tk.END, self.undo_stack.pop())
+    def undo(self, event=None):
+        self.text_area.edit_undo()
 
-    def redo(self):
-        if self.redo_stack:
-            self.undo_stack.append(self.text_area.get(1.0, tk.END))
-            self.text_area.delete(1.0, tk.END)
-            self.text_area.insert(tk.END, self.redo_stack.pop())
+    def redo(self, event=None):
+        self.text_area.edit_redo()
+
+    def update_line_numbers(self, event=None):
+        # Update line numbers
+        self.line_numbers.config(state=tk.NORMAL)
+        self.line_numbers.delete("1.0", tk.END)
+
+        # Get number of lines in text widget
+        num_lines = int(self.text_area.index('end-1c').split('.')[0])
+
+        # Add line numbers to the line_numbers widget
+        for i in range(1, num_lines + 1):
+            self.line_numbers.insert(tk.END, f"{i}\n")
+
+        self.line_numbers.config(state=tk.DISABLED)
+
+    def on_scroll(self, *args):
+        # print("ARGS")
+        # print(*args)
+        print(self.text_area.vbar.get())
+        # Scroll the line_numbers widget when the text_area is scrolled
+        self.line_numbers.yview("moveto", args[1])
+        #self.line_numbers.see()
+
+    # def on_scroll2(self, *args):
+    #     print("ARGS")
+    #     print(*args)
+    #     # Scroll the line_numbers widget when the text_area is scrolled
+        self.text_area.yview("moveto", args[1])
+
+    def on_mousewheel(self, event):
+        # Handle mouse wheel scrolling
+        self.text_area.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        self.line_numbers.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        return "break"
 
     def populate_file_list(self):
         # Populate the file list with Python files from the current directory

@@ -12,7 +12,6 @@ class CodeEditor:
         self.frame = tk.Frame(root)
         self.frame.pack(fill=tk.BOTH, expand=True)
 
-
         # Create a canvas for line numbers
         self.line_numbers = tk.Text(self.frame, width=4, padx=4, takefocus=0,
                                     borderwidth=0, background="lightgray", state="disabled", font=("Consolas", 12))
