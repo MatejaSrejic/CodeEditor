@@ -166,11 +166,9 @@ class CodeEditor:
         self.output_area.insert(tk.END, result.stdout + result.stderr)
 
     def undo(self, event=None):
-        print("Attempt undo")
         self.text_area.edit_undo()
 
     def redo(self, event=None):
-        print("Attempt redo")
         self.text_area.edit_redo()
 
     def update_line_numbers(self, event=None):
