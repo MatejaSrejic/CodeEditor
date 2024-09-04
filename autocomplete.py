@@ -23,6 +23,8 @@ class Autocomplete:
         self.text_widget.bind("(", self.insert_closing_bracket)
         self.text_widget.bind("[", self.insert_closing_bracket)
         self.text_widget.bind("{", self.insert_closing_bracket)
+        self.text_widget.bind("'", self.insert_closing_bracket)
+        self.text_widget.bind('"', self.insert_closing_bracket)
 
         for bulletin in dir(builtins):
             if bulletin[0].lower() == bulletin[0]:
@@ -167,11 +169,10 @@ class Autocomplete:
         self.text_widget.focus_set()
     
     def insert_closing_bracket(self, event):
-        brackets = {'(': ')', '[': ']', '{': '}'}
+        brackets = {'(': ')', '[': ']', '{': '}', '"': '"', "'": "'"}
         opening_bracket = event.char
         closing_bracket = brackets.get(opening_bracket)
         
         if closing_bracket:
             self.text_widget.insert(tk.INSERT, closing_bracket)
             self.text_widget.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
-
